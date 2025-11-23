@@ -1,0 +1,18 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "smtp": {
+    "host": "smtp.qq.com",
+    "port": 465,
+    "secure": true,
+    "auth": {
+      "user": "731421285@qq.com",
+      "pass": "iillnjmcbhgmbceb"
+    }
+  },
+  "mail": {
+    "fromName": "Motorola Beeper",
+    "fromAddress": "731421285@qq.com"
+  }
+}

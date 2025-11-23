@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motorola Smart Beeper (Pro Edition)</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* --- 1. 全局变量与默认主题 (工业橙) --- */
+        :root {
+            /* 环境设置 */
+            --env-bg: #f0f2f5;
+            --transition-speed: 0.4s;
+
+            /* 机身默认颜色 (Industrial Orange) */
+            --body-light: #ff9f1a;
+            --body-dark: #e67e00;
+            --glow-color: rgba(255, 159, 26, 0.35);
+            
+            /* 按钮与细节 */
+            --btn-bg: #2d3436; 
+            --btn-shadow: #000000;
+            --btn-text: #ffffff;
+            --deco-btn: #4a4a4a;
+            --screen-border: #1e1e1e;
+            
+            /* LCD */
+            --lcd-bg: #93b984;
+            --lcd-text: #1a2b15;
+        }
+
+        /* --- 2. 10款配色主题定义 --- */
+        [data-theme="navy"] { --body-light: #34495e; --body-dark: #2c3e50; --glow-color: rgba(52, 152, 219, 0.35); --btn-bg: #e67e22; --btn-shadow: #d35400; --deco-btn: var(--btn-bg); --screen-border: #1a252f; }
+        [data-theme="cream"] { --body-light: #f5f6fa; --body-dark: #dcdde1; --glow-color: rgba(255, 255, 255, 0.3); --btn-bg: #333; --btn-shadow: #000; --btn-text: #fff; --deco-btn: var(--btn-bg); --screen-border: #bdc3c7; }
+        [data-theme="pink"] { --body-light: #ff7979; --body-dark: #eb4d4b; --glow-color: rgba(255, 121, 121, 0.4); --btn-bg: #badc58; --btn-shadow: #6ab04c; --btn-text: #2c3e50; --deco-btn: var(--btn-bg); --screen-border: #535c68; }
+        [data-theme="matrix"] { --body-light: #222; --body-dark: #000; --glow-color: rgba(0, 255, 0, 0.35); --btn-bg: #00b894; --btn-shadow: #006266; --deco-btn: var(--btn-bg); --screen-border: #003300; --lcd-bg: #000; --lcd-text: #0f0; }
+        [data-theme="purple"] { --body-light: #a29bfe; --body-dark: #6c5ce7; --glow-color: rgba(162, 155, 254, 0.4); --btn-bg: #fdcb6e; --btn-shadow: #e17055; --btn-text: #2d3436; --deco-btn: var(--btn-bg); }
+        [data-theme="red"] { --body-light: #ff4757; --body-dark: #c0392b; --glow-color: rgba(255, 71, 87, 0.4); --btn-bg: #2f3542; --btn-shadow: #000; --deco-btn: var(--btn-bg); }
+        [data-theme="gold"] { --body-light: #ffeaa7; --body-dark: #fdcb6e; --glow-color: rgba(255, 215, 0, 0.35); --btn-bg: #2d3436; --btn-shadow: #000; --deco-btn: var(--btn-bg); --screen-border: #b7950b; }
+        [data-theme="stealth"] { --body-light: #2d3436; --body-dark: #1e272e; --glow-color: rgba(0, 0, 0, 0.45); --btn-bg: #636e72; --btn-shadow: #2d3436; --deco-btn: var(--btn-bg); --screen-border: #000; --lcd-bg: #2d3436; --lcd-text: #74b9ff; }
+        [data-theme="ice"] { --body-light: #81ecec; --body-dark: #00cec9; --glow-color: rgba(129, 236, 236, 0.4); --btn-bg: #fff; --btn-shadow: #74b9ff; --btn-text: #0984e3; --deco-btn: var(--btn-bg); }
+
+        /* --- 3. 基础布局 --- */
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--env-bg);
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            transition: background-color var(--transition-speed);
+            overflow: hidden;
+            user-select: none;
+        }
+        body.dark-mode { --env-bg: #121212; }
+
+        /* --- 4. 机身设计 --- */
+        .beeper-body {
+            position: relative;
+            width: 420px; height: auto; min-height: 280px;
+            background: linear-gradient(145deg, var(--body-light), var(--body-dark));
+            border-radius: 40px;
+            box-shadow: inset 1px 1px 2px rgba(255,255,255,0.4), inset -2px -2px 5px rgba(0,0,0,0.3), 0 30px 50px rgba(0,0,0,0.2);
+            padding: 30px; display: flex; flex-direction: column; gap: 20px;
+            transform: scale(1.25);
+            transform-origin: center;
+            transition: all var(--transition-speed) ease;
+            margin-right: 140px; /* 为右侧色板留空间 */
+        }
+        body.dark-mode .beeper-body { box-shadow: inset 1px 1px 2px rgba(255,255,255,0.4), inset -2px -2px 5px rgba(0,0,0,0.5), 0 0 40px var(--glow-color); }
+
+        .top-row { display: flex; justify-content: space-between; align-items: center; }
+        .brand-logo { font-weight: 900; font-style: italic; color: rgba(0,0,0,0.85); font-size: 16px; letter-spacing: 1px; }
+        .grooves { display: flex; gap: 6px; }
+        .groove { width: 5px; height: 12px; background: rgba(0,0,0,0.2); border-radius: 3px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2); }
+
+        /* 屏幕部分 */
+        .screen-lens {
+            background: var(--screen-border); border-radius: 12px; padding: 12px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transition: background var(--transition-speed);
+        }
+        .lcd-panel {
+            background-color: var(--lcd-bg); color: var(--lcd-text); opacity: 0.95;
+            border-radius: 4px; padding: 10px; height: 80px;
+            font-family: 'VT323', monospace; display: flex; flex-direction: column;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+            transition: all var(--transition-speed);
+        }
+        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 16px; opacity: 0.8; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 2px; height: 20px; }
+        .battery-icon { width: 24px; height: 10px; border: 2px solid currentColor; border-radius: 2px; position: relative; padding: 1px; display: flex; align-items: center; }
+        .battery-icon::after { content: ''; position: absolute; right: -4px; top: 2px; width: 2px; height: 6px; background: currentColor; }
+        .battery-level { height: 100%; background: currentColor; width: 100%; }
+        .content-area { flex: 1; display: flex; align-items: center; font-size: 32px; line-height: 1; white-space: nowrap; overflow: hidden; }
+        .lcd-panel.mode-numeric .content-area { justify-content: center; font-size: 52px; letter-spacing: 4px; }
+
+        /* 输入控件 */
+        #inputText, #timePicker, #emailInput {
+            width: 100%; height: 36px; background: transparent; border: none;
+            color: var(--lcd-text); font-family: 'VT323', monospace; padding: 0;
+            outline: none; font-size: 32px; display: none;
+        }
+        #inputText, #emailInput { caret-color: var(--lcd-text); }
+        #inputText:-webkit-autofill, #emailInput:-webkit-autofill { -webkit-text-fill-color: var(--lcd-text); -webkit-box-shadow: 0 0 0px 1000px var(--lcd-bg) inset; box-shadow: 0 0 0px 1000px var(--lcd-bg) inset; transition: background-color 50000s ease-in-out 0s; font-family: 'VT323', monospace; }
+        #inputText:-moz-autofill, #emailInput:-moz-autofill { color: var(--lcd-text); box-shadow: 0 0 0px 1000px var(--lcd-bg) inset; }
+        #inputText::placeholder { color: rgba(0,0,0,0.5); }
+
+        /* 控制区 */
+        .control-panel { display: flex; align-items: center; gap: 15px; margin-top: auto; justify-content: space-between; }
+        .btn-send {
+            width: 90px; height: 45px; background: var(--btn-bg); color: var(--btn-text);
+            border-radius: 40px; border: none; font-weight: 900; font-size: 14px;
+            cursor: pointer; box-shadow: 0 5px 0 var(--btn-shadow), 0 10px 15px rgba(0,0,0,0.2);
+            transition: all 0.2s; margin-left: auto;
+        }
+        .btn-send:active { transform: translateY(0); box-shadow: 0 0 0 var(--btn-shadow); }
+        .btn-send:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        
+        .btn-function {
+            width: 90px; height: 36px; background: var(--btn-bg); color: var(--btn-text);
+            border-radius: 40px; box-shadow: 0 5px 0 var(--btn-shadow), 0 10px 15px rgba(0,0,0,0.2);
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 14px;
+        }
+        .btn-function.off { background: #7b7b7b; }
+        .btn-function:active { transform: translateY(2px); box-shadow: none; }
+        .btn-label { display: none; }
+
+        /* --- 5. 右侧配色切换器 --- */
+        .palette-switcher {
+            position: fixed; right: 30px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 12px;
+            background: rgba(255,255,255,0.8); padding: 20px 12px;
+            border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px); z-index: 100; max-height: 80vh; overflow-y: auto;
+        }
+        .palette-switcher::-webkit-scrollbar { width: 0; }
+        body.dark-mode .palette-switcher { background: rgba(44, 62, 80, 0.6); }
+
+        .swatch {
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; position: relative; transition: transform 0.2s; background-clip: border-box;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .swatch:hover { transform: scale(1.15); z-index: 2; }
+        .swatch.active { border-color: #333; transform: scale(1.15); }
+        body.dark-mode .swatch.active { border-color: #fff; }
+
+        .s-default { background: linear-gradient(135deg, #ff9f1a, #e67e00); }
+        .s-navy { background: linear-gradient(135deg, #34495e, #2c3e50); }
+        .s-cream { background: linear-gradient(135deg, #f5f6fa, #dcdde1); }
+        .s-pink { background: linear-gradient(135deg, #ff7979, #eb4d4b); }
+        .s-matrix { background: linear-gradient(135deg, #222, #000); border: 1px solid #0f0; }
+        .s-purple { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
+        .s-red { background: linear-gradient(135deg, #ff4757, #c0392b); }
+        .s-gold { background: linear-gradient(135deg, #ffeaa7, #fdcb6e); }
+        .s-stealth { background: linear-gradient(135deg, #3b4146, #0a0a0a); border: 1px solid rgba(255,255,255,0.18); }
+        body.dark-mode .s-stealth { border-color: rgba(255,255,255,0.35); }
+        .s-ice { background: linear-gradient(135deg, #81ecec, #00cec9); }
+
+        .swatch::after {
+            content: attr(data-title); position: absolute; right: 50px; top: 50%;
+            transform: translateY(-50%); background: #000; color: #fff;
+            padding: 4px 8px; border-radius: 4px; font-size: 10px; opacity: 0;
+            pointer-events: none; white-space: nowrap; transition: opacity 0.2s;
+        }
+        .swatch:hover::after { opacity: 0.8; }
+
+        .theme-toggle-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 40px; height: 40px; background: #fff; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 20px;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: none;
+        }
+        body.dark-mode .theme-toggle-btn { background: #2c3e50; color: #f1c40f; }
+
+        .cursor { display: inline-block; width: 10px; height: 1em; background: currentColor; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- 6. 磨砂浮光卡片标签 (新设计) --- */
+        .tag-layer {
+            position: fixed; inset: 0; z-index: 999; pointer-events: none;
+        }
+
+        .draggable-tag {
+            position: absolute;
+            width: 280px;
+            height: auto; min-height: 120px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+            cursor: grab; pointer-events: auto; user-select: none;
+            transform: rotate(var(--rot, 0deg));
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+            padding: 24px 20px;
+            display: flex; flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .draggable-tag.dragging {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            transform: scale(1.02) rotate(var(--rot, 0deg));
+            cursor: grabbing; z-index: 1000;
+        }
+
+        .draggable-tag .tag-content { display: flex; flex-direction: column; gap: 16px; }
+        
+        .draggable-tag .tag-row {
+            display: flex; flex-direction: column; align-items: flex-start;
+            gap: 4px; padding: 8px 0 12px; position: relative;
+        }
+        .draggable-tag .tag-row::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+            background: linear-gradient(90deg, var(--accent, rgba(0,0,0,0.15)) 0%, rgba(0,0,0,0.08) 100%);
+            opacity: 0.85;
+        }
+
+        .draggable-tag .tag-label {
+            font-size: 12px; font-weight: 700; color: #9ca3af;
+            letter-spacing: 1.5px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .draggable-tag .tag-label::before {
+            content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent, #9ca3af);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.04);
+        }
+
+        .draggable-tag .tag-val {
+            font-size: 20px; font-weight: 500; color: #1f2937;
+            line-height: 1.5; word-break: break-word;
+        }
+
+        /* 针对 MSG 类型的特殊复古样式 */
+        .draggable-tag .tag-row[data-type="MSG"] .tag-val {
+            font-family: 'VT323', monospace; font-size: 24px; color: #000;
+            background: rgba(0,0,0,0.03); padding: 8px 12px;
+            border-radius: 8px; width: 100%; box-sizing: border-box;
+        }
+        .draggable-tag .tag-row[data-type="NUM"] { --accent: #3b82f6; }
+        .draggable-tag .tag-row[data-type="MSG"] { --accent: #f59e0b; }
+        .draggable-tag .tag-row[data-type="TIM"] { --accent: #10b981; }
+        .draggable-tag .tag-row[data-type="EMAIL"] { --accent: #8b5cf6; }
+
+        .draggable-tag .tag-close {
+            position: absolute; top: 12px; right: 12px;
+            width: 24px; height: 24px; border: none; border-radius: 50%;
+            background: transparent; color: #cbd5e1; font-size: 18px;
+            line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .draggable-tag .tag-close:hover {
+            background: #fee2e2; color: #ef4444; transform: rotate(90deg);
+        }
+        .toast-layer { position: fixed; right: 30px; bottom: 30px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { min-width: 260px; max-width: 340px; padding: 12px 16px 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.6); display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04); color: #1f2937; font-size: 14px; line-height: 1.4; pointer-events: auto; }
+        body.dark-mode .toast { background: rgba(44,62,80,0.7); color: #fff; border-color: rgba(255,255,255,0.15); }
+        .toast::before { content: ''; width: 4px; height: 100%; border-radius: 4px; display: block; }
+        .toast-success::before { background: #10b981; }
+        .toast-error::before { background: #ef4444; }
+        .toast-info::before { background: #3b82f6; }
+        .toast-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .toast-text { flex: 1; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle-btn" onclick="toggleGlobalTheme()" title="切换日/夜模式">
+        <span id="themeIcon">☀️</span>
+    </button>
+
+    <div class="beeper-body">
+        <div class="top-row">
+            <div class="brand-logo">MOTOROLA <span style="font-size:12px">FLEX</span></div>
+            <div class="top-right" style="display:flex;align-items:center;gap:8px;">
+                <span style="font-weight:900;font-size:18px;color:rgba(0,0,0,0.85);">5G</span>
+                <div class="grooves">
+                    <div class="groove"></div><div class="groove"></div><div class="groove"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen-lens">
+            <div class="lcd-panel" id="lcdPanel">
+                <div class="status-row">
+                    <div style="display:flex;gap:8px;"><span id="modeIndicator">MSG</span><span id="lightIndicator" style="font-size:12px;font-weight:700;opacity:0.85;">LGT:MID</span></div>
+                    <div style="display:flex; align-items:center;">
+                        <span id="batteryText" style="margin-right:4px;">100%</span>
+                        <div class="battery-icon"><div class="battery-level" id="batteryBar"></div></div>
+                        <div style="display:flex;align-items:flex-end;gap:2px;margin-left:10px;">
+                            <span style="width:3px;height:4px;background:currentColor;"></span>
+                            <span style="width:3px;height:6px;background:currentColor;"></span>
+                            <span style="width:3px;height:8px;background:currentColor;"></span>
+                            <span style="width:3px;height:12px;background:currentColor;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-area">
+                    <div id="screenContent">READY...<span class="cursor"></span></div>
+                    <input id="inputText" type="text" placeholder="MSG..." autocomplete="off" />
+                    <input id="timePicker" type="text" placeholder="yyyy-MM-dd HH:mm" autocomplete="off" />
+                    <input id="emailInput" type="email" placeholder="EMAIL..." autocomplete="off" />
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div style="display:flex; gap:10px; position:relative;">
+                <div class="btn-function" onclick="toggleScreenMode()">MODE</div>
+                <div class="btn-function" onclick="toggleBacklight()">LIGHT</div>
+                <div class="btn-function" id="soundToggle" onclick="toggleSound()">SOUND</div>
+            </div>
+            
+            <button class="btn-send" id="sendBtn" onclick="handleSend()">SEND</button>
+        </div>
+    </div>
+
+    <!-- 右侧配色切换器 -->
+    <div class="palette-switcher">
+        <div class="swatch s-default active" data-title="工业橙" onclick="setDeviceTheme('default', this)"></div>
+        <div class="swatch s-navy" data-title="海军蓝" onclick="setDeviceTheme('navy', this)"></div>
+        <div class="swatch s-cream" data-title="复古白" onclick="setDeviceTheme('cream', this)"></div>
+        <div class="swatch s-pink" data-title="赛博粉" onclick="setDeviceTheme('pink', this)"></div>
+        <div class="swatch s-matrix" data-title="黑客绿" onclick="setDeviceTheme('matrix', this)"></div>
+        <div class="swatch s-purple" data-title="原子紫" onclick="setDeviceTheme('purple', this)"></div>
+        <div class="swatch s-red" data-title="法拉利红" onclick="setDeviceTheme('red', this)"></div>
+        <div class="swatch s-gold" data-title="土豪金" onclick="setDeviceTheme('gold', this)"></div>
+        <div class="swatch s-stealth" data-title="隐形黑" onclick="setDeviceTheme('stealth', this)"></div>
+        <div class="swatch s-ice" data-title="冰川蓝" onclick="setDeviceTheme('ice', this)"></div>
+    </div>
+
+<script>
+    const lcdPanel = document.getElementById('lcdPanel');
+    const screenContent = document.getElementById('screenContent');
+    const inputField = document.getElementById('inputText');
+    const batteryBar = document.getElementById('batteryBar');
+    const batteryText = document.getElementById('batteryText');
+    const modeIndicator = document.getElementById('modeIndicator');
+    const themeIcon = document.getElementById('themeIcon');
+    const sendBtn = document.getElementById('sendBtn');
+    const soundToggle = document.getElementById('soundToggle');
+    const lightIndicator = document.getElementById('lightIndicator');
+    const timePicker = document.getElementById('timePicker');
+    const emailInput = document.getElementById('emailInput');
+    let tagLayer = null;
+    let toastLayer = null;
+    let selectedTime = '';
+    let savedEmail = '';
+    let loadedPending = false;
+    let pendingIds = new Set();
+
+    let currentMode = 'numeric'; 
+    let typedText = ''; 
+    let lightLevel = 1; 
+    let soundOn = true;
+    const lightLevels = [
+        { label: 'LOW', opacity: 0.7, brightness: 1.0 },
+        { label: 'MID', opacity: 0.95, brightness: 1.15 },
+        { label: 'HIGH', opacity: 1.0, brightness: 1.3 }
+    ];
+
+    function toggleGlobalTheme() {
+        document.body.classList.toggle('dark-mode');
+        themeIcon.textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
+        playClickSound();
+        saveConfig();
+    }
+
+    function updateEnvThemeByTime() {
+        const h = new Date().getHours();
+        const isDark = h >= 19 || h < 6;
+        document.body.classList.toggle('dark-mode', isDark);
+        themeIcon.textContent = isDark ? '🌙' : '☀️';
+    }
+
+    function setDeviceTheme(themeName, element) {
+        if (themeName === 'default') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', themeName);
+        document.querySelectorAll('.swatch').forEach(el => el.classList.remove('active'));
+        if(element) element.classList.add('active');
+        playClickSound();
+        saveConfig();
+    }
+
+    function updateBattery() {
+        const now = new Date();
+        const totalMinutes = 24 * 60; 
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        let percent = 100 - (currentMinutes / totalMinutes * 100);
+        percent = Math.max(1, Math.min(100, Math.floor(percent)));
+        batteryBar.style.width = `${percent}%`;
+        batteryText.textContent = `${percent}%`;
+    }
+    setInterval(updateBattery, 60000); updateBattery();
+    setInterval(updateEnvThemeByTime, 60000); updateEnvThemeByTime();
+
+    function renderScreen() {
+        inputField.style.display = 'none';
+        timePicker.style.display = 'none';
+        emailInput.style.display = 'none';
+        screenContent.style.display = 'none';
+
+        if (currentMode === 'text') {
+            lcdPanel.classList.remove('mode-numeric');
+            modeIndicator.textContent = 'MSG';
+            inputField.style.display = 'block';
+            inputField.disabled = false;
+            updateSendEnabled();
+        } else if (currentMode === 'numeric') {
+            lcdPanel.classList.add('mode-numeric');
+            modeIndicator.textContent = 'NUM';
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            screenContent.innerHTML = `${h}:${m}:${s}`;
+            screenContent.style.display = 'flex';
+            inputField.disabled = true;
+            updateSendEnabled();
+        } else if (currentMode === 'time') {
+            lcdPanel.classList.remove('mode-numeric');
+            modeIndicator.textContent = 'TIM';
+            timePicker.style.display = 'block';
+            if(!timePicker.value) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                timePicker.value = `${yyyy}-${mm}-${dd} ${h}:${m}`;
+            }
+            updateSendEnabled();
+            timePicker.focus();
+        } else if (currentMode === 'email') {
+            lcdPanel.classList.remove('mode-numeric');
+            modeIndicator.textContent = 'EML';
+            emailInput.style.display = 'block';
+            updateSendEnabled();
+            emailInput.focus();
+        }
+    }
+
+    function toggleScreenMode() {
+        playClickSound();
+        if (currentMode === 'text') currentMode = 'numeric';
+        else if (currentMode === 'numeric') currentMode = 'time';
+        else if (currentMode === 'time') currentMode = 'email';
+        else currentMode = 'text';
+        renderScreen();
+        saveConfig();
+    }
+    setInterval(() => { if (currentMode === 'numeric') renderScreen(); }, 1000);
+
+    function toggleBacklight() {
+        playClickSound();
+        lightLevel = (lightLevel + 1) % lightLevels.length;
+        const lvl = lightLevels[lightLevel];
+        lcdPanel.style.opacity = String(lvl.opacity);
+        lcdPanel.style.filter = `brightness(${lvl.brightness})`;
+        lightIndicator.textContent = `LGT:${lvl.label}`;
+        saveConfig();
+    }
+
+    inputField.addEventListener('input', (e) => {
+        if (currentMode !== 'text') return;
+        typedText = e.target.value;
+        playTypeSound();
+        inputField.scrollLeft = inputField.scrollWidth;
+        updateSendEnabled();
+        saveConfig();
+    });
+    function formatTimeValue(val) {
+        const d = String(val || '').replace(/\D/g, '').slice(0, 12);
+        let y = d.slice(0,4);
+        let mo = d.slice(4,6);
+        let da = d.slice(6,8);
+        let ho = d.slice(8,10);
+        let mi = d.slice(10,12);
+        if (mo.length === 2) { let n = Math.min(Math.max(parseInt(mo,10),1),12); mo = String(n).padStart(2,'0'); }
+        if (da.length === 2) { let n = Math.min(Math.max(parseInt(da,10),1),31); da = String(n).padStart(2,'0'); }
+        if (ho.length === 2) { let n = Math.min(Math.max(parseInt(ho,10),0),23); ho = String(n).padStart(2,'0'); }
+        if (mi.length === 2) { let n = Math.min(Math.max(parseInt(mi,10),0),59); mi = String(n).padStart(2,'0'); }
+        let out = '';
+        if (y) out += y;
+        if (mo) out += '-' + mo; else if (d.length > 4) out += '-';
+        if (da) out += '-' + da; else if (d.length > 6) out += '-';
+        if (ho) out += ' ' + ho; else if (d.length > 8) out += ' ';
+        if (mi) out += ':' + mi; else if (d.length > 10) out += ':';
+        return out;
+    }
+    timePicker.addEventListener('input', () => {
+        const v = formatTimeValue(timePicker.value);
+        timePicker.value = v;
+        selectedTime = v;
+        updateSendEnabled();
+        saveConfig();
+    });
+    emailInput.addEventListener('input', () => { savedEmail = emailInput.value.trim(); updateSendEnabled(); saveConfig(); });
+
+async function handleSend() {
+        // 1. 获取基础数据
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        
+        // 2. 准备显示用的标签数据
+        let parts = [];
+        parts.push(`NUM:${yyyy}-${mm}-${dd} ${h}:${m}:${s}`);
+        
+        // 获取实际的值用于后端发送
+        const rawMsg = typedText.trim().toUpperCase();
+        if (rawMsg) parts.push(`MSG:${rawMsg}`);
+        
+        let timValRaw = timePicker.value || selectedTime;
+        let timVal = formatTimeValue((timValRaw || '').replace('T', ' '));
+        if (!timVal || timVal.length < 16) timVal = `${yyyy}-${mm}-${dd} ${h}:${m}`;
+        parts.push(`TIM:${timVal}`);
+        
+        let mailVal = (emailInput.value.trim() || savedEmail);
+        parts.push(`EMAIL:${mailVal || 'N/A'}`);
+
+        // 3. 执行逻辑
+        if (parts.length > 1) { 
+            // A. 前端视觉效果 (保持原样)
+            const tagText = parts.join(' | ');
+            const tagEl = createDraggableTag(tagText);
+            playSuccessBeep();
+            
+            const prevDisplay = screenContent.style.display;
+            screenContent.style.display = 'flex';
+            screenContent.innerHTML = "SENDING...";
+            showToast('info', 'SENDING...');
+            inputField.style.display = 'none';
+            timePicker.style.display = 'none';
+            emailInput.style.display = 'none';
+
+            // B. 后端 API 调用 (新增部分)
+            const payload = {
+                msg: rawMsg || "",
+                time: timVal,
+                email: mailVal
+            };
+
+            const parsed = timVal ? new Date(timVal.replace(' ', 'T')) : null;
+            if (parsed && !isNaN(parsed) && parsed <= new Date()) {
+                screenContent.innerHTML = "ERR:TIME";
+                showToast('error', 'ERR:TIME');
+                typedText = ''; inputField.value = ''; emailInput.value = '';
+                saveConfig();
+                setTimeout(() => { renderScreen(); }, 1500);
+                return;
+            }
+
+            // 只有当有邮箱时才发送请求
+            if(mailVal && mailVal.includes('@')) {
+                try {
+                    const response = await fetch('http://localhost:3000/api/schedule-reminder', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if(result.success) {
+                        screenContent.innerHTML = "SENT OK";
+                        showToast('success', 'SENT OK');
+                        if (result.status === 'scheduled' && result.pendingId && tagEl) {
+                            tagEl.dataset.tagId = result.pendingId;
+                            tagEl.dataset.pending = '1';
+                            saveConfig();
+                        }
+                    } else {
+                        screenContent.innerHTML = (result.status === 'expired') ? "ERR:TIME" : "ERR:MAIL";
+                        showToast('error', (result.status === 'expired') ? 'ERR:TIME' : 'ERR:MAIL');
+                        if (result.pendingId && tagEl) {
+                            tagEl.dataset.tagId = result.pendingId;
+                            tagEl.dataset.pending = '1';
+                            saveConfig();
+                        }
+                    }
+                } catch (err) {
+                    console.error("Backend Error:", err);
+                    screenContent.innerHTML = "ERR:CONN";
+                    showToast('error', 'ERR:CONN');
+                }
+            } else {
+                try {
+                    const resp = await fetch('/api/pending-save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ msg: rawMsg || '', time: timVal, email: '' })
+                    });
+                    const r = await resp.json();
+                    if (r && r.success && r.id && tagEl) {
+                        tagEl.dataset.tagId = r.id;
+                        tagEl.dataset.pending = '1';
+                        saveConfig();
+                    }
+                } catch (e) {}
+                screenContent.innerHTML = "MEMO OK"; 
+                showToast('success', 'MEMO OK');
+            }
+            
+            // 4. 清理与恢复
+            typedText = ''; inputField.value = ''; emailInput.value = '';
+            saveConfig();
+            
+            setTimeout(() => {
+                renderScreen();
+            }, 1500);
+        }
+    }
+
+    // --- 核心：新版磨砂标签生成逻辑 ---
+    function ensureTagLayer() {
+        if (!tagLayer) {
+            tagLayer = document.createElement('div');
+            tagLayer.id = 'tagLayer';
+            tagLayer.className = 'tag-layer';
+            document.body.appendChild(tagLayer);
+        }
+    }
+
+    function ensureToastLayer() {
+        if (!toastLayer) {
+            toastLayer = document.createElement('div');
+            toastLayer.className = 'toast-layer';
+            document.body.appendChild(toastLayer);
+        }
+    }
+
+    function showToast(kind, text) {
+        ensureToastLayer();
+        const el = document.createElement('div');
+        el.className = 'toast toast-' + kind;
+        const icon = document.createElement('div');
+        icon.className = 'toast-icon';
+        icon.textContent = kind === 'success' ? '✓' : (kind === 'error' ? '✕' : '⏳');
+        const tx = document.createElement('div');
+        tx.className = 'toast-text';
+        tx.textContent = text;
+        el.appendChild(icon);
+        el.appendChild(tx);
+        toastLayer.appendChild(el);
+        el.animate([{ transform: 'translateY(10px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: 200 });
+        setTimeout(() => { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }); setTimeout(() => { el.remove(); }, 200); }, 2500);
+    }
+
+    function createDraggableTag(text, options) {
+        const opts = options || {};
+        ensureTagLayer();
+        const el = document.createElement('div');
+        el.className = 'draggable-tag';
+        const tagId = opts.id || String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
+        el.dataset.tagId = tagId;
+        const existing = document.querySelector(`.draggable-tag[data-tag-id="${tagId}"]`);
+        if (existing) return existing;
+        if (opts && opts.pending) el.dataset.pending = '1';
+        
+        const partsArr = String(text).split(' | ');
+        const contentEl = document.createElement('div');
+        contentEl.className = 'tag-content';
+
+        for (let i = 0; i < partsArr.length; i++) {
+            const p = partsArr[i];
+            const idx = p.indexOf(':');
+            const k = idx > -1 ? p.slice(0, idx) : 'INFO';
+            const v = idx > -1 ? p.slice(idx + 1) : p;
+
+            const row = document.createElement('div');
+            row.className = 'tag-row';
+            row.setAttribute('data-type', k); // 关键：用于特殊样式
+
+            const lab = document.createElement('div');
+            lab.className = 'tag-label';
+            lab.textContent = k;
+            const val = document.createElement('div');
+            val.className = 'tag-val';
+            val.textContent = v;
+
+            row.appendChild(lab); row.appendChild(val);
+            contentEl.appendChild(row);
+        }
+        el.appendChild(contentEl);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tag-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            el.style.transform = `scale(0.8) rotate(${el.style.getPropertyValue('--rot')})`;
+            el.style.opacity = '0';
+            try {
+                let id = el.dataset.tagId || '';
+                if (!id) {
+                    const rows = Array.from(el.querySelectorAll('.tag-row'));
+                    let tim = '', msg = '', email = '';
+                    for (const row of rows) {
+                        const k = row.getAttribute('data-type') || '';
+                        const vEl = row.querySelector('.tag-val');
+                        const v = vEl ? vEl.textContent.trim() : '';
+                        if (k === 'TIM') tim = String(v).slice(0,16);
+                        else if (k === 'MSG') msg = String(v).toUpperCase();
+                        else if (k === 'EMAIL') email = String(v);
+                    }
+                    let found = null;
+                    for (let i = 0; i < 2 && !found; i++) {
+                        const res = await fetch('/api/pending-list');
+                        const list = await res.json();
+                        found = Array.isArray(list) ? list.find(x => String(x.scheduledAt || '').slice(0,16) === tim && String(x.msg || '').toUpperCase() === msg && String(x.email || 'N/A') === email) : null;
+                        if (!found) { await new Promise(r => setTimeout(r, 200)); }
+                    }
+                    if (found && found.id) id = found.id;
+                    if (id) el.dataset.tagId = id;
+                }
+                if (id) {
+                    await fetch('/api/pending-remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                }
+            } catch(e) {}
+            setTimeout(() => { el.remove(); saveConfig(); }, 200);
+        });
+        closeBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+        el.appendChild(closeBtn);
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const regions = [
+            { xb: 40, yb: 60, xj: 220, yj: 160 },
+            { xb: vw - 360, yb: 60, xj: 220, yj: 160 },
+            { xb: 40, yb: vh - 240, xj: 220, yj: 160 },
+            { xb: vw - 360, yb: vh - 240, xj: 220, yj: 160 }
+        ];
+        const r = regions[Math.floor(Math.random() * regions.length)];
+        const posX = r.xb + Math.random() * r.xj;
+        const posY = r.yb + Math.random() * r.yj;
+        const x = opts.left ? parseFloat(String(opts.left).replace('px','')) : posX;
+        const y = opts.top ? parseFloat(String(opts.top).replace('px','')) : posY;
+        
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        const rot = opts.rot ? parseFloat(String(opts.rot).replace('deg','')) : (Math.random() * 4 - 2);
+        el.style.setProperty('--rot', rot + 'deg');
+
+        // 拖拽
+        let dragging = false;
+        let startX, startY, initialLeft, initialTop;
+        const onMove = (e) => { 
+            if (!dragging) return; 
+            el.style.left = (initialLeft + e.clientX - startX) + 'px'; 
+            el.style.top = (initialTop + e.clientY - startY) + 'px'; 
+        };
+        const onUp = () => { 
+            dragging = false; el.classList.remove('dragging'); el.style.cursor = 'grab'; 
+            document.removeEventListener('mousemove', onMove); 
+            document.removeEventListener('mouseup', onUp); 
+            saveConfig();
+        };
+        el.addEventListener('mousedown', (e) => { 
+            if(e.target === closeBtn) return;
+            dragging = true; startX = e.clientX; startY = e.clientY;
+            initialLeft = el.offsetLeft; initialTop = el.offsetTop;
+            el.classList.add('dragging'); el.style.cursor = 'grabbing'; 
+            tagLayer.appendChild(el);
+            document.addEventListener('mousemove', onMove); 
+            document.addEventListener('mouseup', onUp); 
+        });
+
+        tagLayer.appendChild(el);
+        el.animate([
+            { transform: `scale(0.8) translateY(20px) rotate(${rot}deg)`, opacity: 0 },
+            { transform: `scale(1) translateY(0) rotate(${rot}deg)`, opacity: 1 }
+        ], { duration: 300, easing: 'cubic-bezier(0.18, 0.89, 0.32, 1.28)' });
+        if (!opts.skipPersist) saveConfig();
+        return el;
+    }
+
+    function updateSendEnabled() {
+        let enabled = false;
+        if (currentMode === 'text') enabled = typedText.trim().length > 0;
+        else enabled = false;
+        sendBtn.disabled = !enabled;
+    }
+
+    // --- 音效系统 ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    function playSound(type) {
+        if (!soundOn) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        
+        if (type === 'click') {
+            osc.frequency.setValueAtTime(400, t); osc.type = 'square';
+            gain.gain.setValueAtTime(0.05, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+            osc.start(); osc.stop(t + 0.05);
+        } else if (type === 'type') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(600, t);
+            osc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+            gain.gain.setValueAtTime(0.05, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+            osc.start(); osc.stop(t + 0.05);
+        } else if (type === 'success') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(2000, t);
+            gain.gain.setValueAtTime(0.1, t); gain.gain.setValueAtTime(0, t + 0.1);
+            osc.frequency.setValueAtTime(2000, t + 0.15);
+            gain.gain.setValueAtTime(0.1, t + 0.15); gain.gain.setValueAtTime(0, t + 0.25);
+            osc.start(t); osc.stop(t + 0.3);
+        }
+    }
+    const playClickSound = () => playSound('click');
+    const playTypeSound = () => playSound('type');
+    const playSuccessBeep = () => playSound('success');
+    function toggleSound() {
+        soundOn = !soundOn;
+        soundToggle.classList.toggle('off', !soundOn);
+        saveConfig();
+    }
+
+    const CONFIG_KEY = 'aiStudioConfig';
+    function getTagTextFromElement(el) {
+        const rows = Array.from(el.querySelectorAll('.tag-row')).map(row => {
+            const k = row.getAttribute('data-type') || 'INFO';
+            const vEl = row.querySelector('.tag-val');
+            const v = vEl ? vEl.textContent.trim() : '';
+            return k + ':' + v;
+        });
+        return rows.join(' | ');
+    }
+    function saveConfig() {
+        const tags = Array.from(document.querySelectorAll('.draggable-tag')).map(el => {
+            return {
+                id: el.dataset.tagId || '',
+                text: getTagTextFromElement(el),
+                left: el.style.left || (el.offsetLeft + 'px'),
+                top: el.style.top || (el.offsetTop + 'px'),
+                rot: el.style.getPropertyValue('--rot') || '0deg'
+            };
+        });
+        const cfg = {
+            theme: document.documentElement.getAttribute('data-theme') || 'default',
+            darkMode: document.body.classList.contains('dark-mode'),
+            lightLevel: lightLevel,
+            soundOn: soundOn,
+            currentMode: currentMode,
+            typedText: typedText,
+            timeValue: timePicker.value || selectedTime,
+            email: emailInput.value || savedEmail,
+            tags: tags
+        };
+        try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); } catch(e) {}
+    }
+    function loadConfig() {
+        let raw = null; try { raw = localStorage.getItem(CONFIG_KEY); } catch(e) {}
+        if (!raw) return;
+        let cfg = null; try { cfg = JSON.parse(raw); } catch(e) { return; }
+        if (!cfg) return;
+        if (cfg.theme) {
+            const el = document.querySelector(`.swatch.s-${cfg.theme}`) || null;
+            setDeviceTheme(cfg.theme, el);
+        }
+        document.body.classList.toggle('dark-mode', !!cfg.darkMode);
+        themeIcon.textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
+        if (typeof cfg.lightLevel === 'number') {
+            lightLevel = cfg.lightLevel % lightLevels.length;
+            const lvl = lightLevels[lightLevel];
+            lcdPanel.style.opacity = String(lvl.opacity);
+            lcdPanel.style.filter = `brightness(${lvl.brightness})`;
+            lightIndicator.textContent = `LGT:${lvl.label}`;
+        }
+        soundOn = !!cfg.soundOn;
+        soundToggle.classList.toggle('off', !soundOn);
+        if (cfg.currentMode) currentMode = cfg.currentMode;
+        typedText = String(cfg.typedText || '');
+        inputField.value = typedText;
+        selectedTime = String(cfg.timeValue || '');
+        timePicker.value = selectedTime;
+        savedEmail = String(cfg.email || '');
+        emailInput.value = savedEmail;
+        if (Array.isArray(cfg.tags)) {
+            ensureTagLayer();
+            cfg.tags.forEach(t => {
+                createDraggableTag(t.text, { id: t.id, left: t.left, top: t.top, rot: t.rot, skipPersist: true });
+            });
+        }
+    }
+    function initConfig() { loadConfig(); }
+
+    async function loadPendingTags() {
+        if (loadedPending) return;
+        loadedPending = true;
+        try {
+            const res = await fetch('/api/pending-list');
+            const list = await res.json();
+            ensureTagLayer();
+            for (const it of list) {
+                const parts = [];
+                const created = String(it.createdAt || '').slice(0,16);
+                const fallbackNow = (() => { const d = new Date(); const y = d.getFullYear(); const mo = String(d.getMonth()+1).padStart(2,'0'); const da = String(d.getDate()).padStart(2,'0'); const h = String(d.getHours()).padStart(2,'0'); const mi = String(d.getMinutes()).padStart(2,'0'); return `${y}-${mo}-${da} ${h}:${mi}`; })();
+                parts.push(`NUM:${(created || fallbackNow) + ':00'}`);
+                if (it.msg) parts.push(`MSG:${String(it.msg).toUpperCase()}`);
+                if (it.scheduledAt) {
+                    parts.push(`TIM:${String(it.scheduledAt).slice(0,16)}`);
+                } else if (it.localTime) {
+                    parts.push(`TIM:${String(it.localTime).slice(0,16)}`);
+                } else if (it.time) {
+                    const dt = new Date(it.time);
+                    const ty = dt.getFullYear();
+                    const tmn = String(dt.getMonth() + 1).padStart(2, '0');
+                    const td = String(dt.getDate()).padStart(2, '0');
+                    const th = String(dt.getHours()).padStart(2, '0');
+                    const tmm = String(dt.getMinutes()).padStart(2, '0');
+                    parts.push(`TIM:${ty}-${tmn}-${td} ${th}:${tmm}`);
+                }
+                parts.push(`EMAIL:${it.email || 'N/A'}`);
+                createDraggableTag(parts.join(' | '), { id: it.id, pending: true });
+                pendingIds.add(it.id);
+            }
+        } catch(e) {}
+    }
+
+    async function refreshPendingTags() {
+        try {
+            const res = await fetch('/api/pending-list');
+            const list = await res.json();
+            const keep = new Set(list.map(x => x.id));
+            document.querySelectorAll('.draggable-tag[data-pending="1"]').forEach(el => {
+                const id = el.dataset.tagId || '';
+                if (!keep.has(id)) el.remove();
+            });
+            for (const it of list) {
+                if (document.querySelector(`.draggable-tag[data-tag-id="${it.id}"]`)) continue;
+                const parts = [];
+                const created = String(it.createdAt || '').slice(0,16);
+                const fallbackNow = (() => { const d = new Date(); const y = d.getFullYear(); const mo = String(d.getMonth()+1).padStart(2,'0'); const da = String(d.getDate()).padStart(2,'0'); const h = String(d.getHours()).padStart(2,'0'); const mi = String(d.getMinutes()).padStart(2,'0'); return `${y}-${mo}-${da} ${h}:${mi}`; })();
+                parts.push(`NUM:${(created || fallbackNow) + ':00'}`);
+                if (it.msg) parts.push(`MSG:${String(it.msg).toUpperCase()}`);
+                if (it.scheduledAt) {
+                    parts.push(`TIM:${String(it.scheduledAt).slice(0,16)}`);
+                } else if (it.localTime) {
+                    parts.push(`TIM:${String(it.localTime).slice(0,16)}`);
+                } else if (it.time) {
+                    const dt = new Date(it.time);
+                    const ty = dt.getFullYear();
+                    const tmn = String(dt.getMonth() + 1).padStart(2, '0');
+                    const td = String(dt.getDate()).padStart(2, '0');
+                    const th = String(dt.getHours()).padStart(2, '0');
+                    const tmm = String(dt.getMinutes()).padStart(2, '0');
+                    parts.push(`TIM:${ty}-${tmn}-${td} ${th}:${tmm}`);
+                }
+                parts.push(`EMAIL:${it.email || 'N/A'}`);
+                createDraggableTag(parts.join(' | '), { id: it.id, pending: true });
+            }
+        } catch(e) {}
+    }
+
+    initConfig();
+    loadPendingTags();
+    const es = new EventSource('/api/pending-events');
+    es.onmessage = () => { refreshPendingTags(); };
+    renderScreen();
+</script>
+</body>
+</html>
