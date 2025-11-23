@@ -7,12 +7,12 @@
     "port": 465,
     "secure": true,
     "auth": {
-      "user": "731421285@qq.com",
+      "user": "",
       "pass": ""
     }
   },
   "mail": {
     "fromName": "Motorola Beeper",
-    "fromAddress": "731421285@qq.com"
+    "fromAddress": ""
   }
 }
